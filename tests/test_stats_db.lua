@@ -7,8 +7,12 @@ local stats = require('stats_db')
 
 -- Use a test database
 local test_db = "test_dungeon_stats.db"
+stats.set_db_file(test_db)
+stats.init_db() -- Initialize schema for the test DB
+
+-- Cleanup before and after
 os.execute("rm -f " .. test_db)
-os.execute("cp dungeon_stats.db " .. test_db)
+stats.init_db()
 
 test.describe("Stats Database Module", function()
     

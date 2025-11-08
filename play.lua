@@ -1,5 +1,9 @@
 #!/usr/bin/env lua
 
+-- Force unbuffered output to keep session alive
+io.stdout:setvbuf("no")
+io.stderr:setvbuf("no")
+
 -- Initialize RNG
 math.randomseed(os.time())
 for i = 1, 10 do math.random() end

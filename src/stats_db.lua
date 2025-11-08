@@ -3,6 +3,11 @@ local M = {}
 
 local DB_FILE = "dungeon_stats.db"
 
+-- Allow changing DB file for testing
+function M.set_db_file(path)
+    DB_FILE = path
+end
+
 -- Execute SQL command
 local function exec_sql(sql, params)
     local cmd = string.format('sqlite3 %s "%s"', DB_FILE, sql:gsub('"', '\\"'))
