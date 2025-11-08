@@ -1,0 +1,38 @@
+# Lua compiled files
+*.luac
+
+# Database files (keep structure, not data)
+dungeon_stats.db
+
+# Backup files
+*.bak
+*.tmp
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+.directory
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Test output
+test_results/
+coverage/
+
+# Generated save games (keep example)
+*.txt
+!bimbo_quest.txt
+
+# Character files (keep example)
+character_*.md
+!character_bimbo.md
+
+# Temporary files
+temp/
+tmp/
+*.log
