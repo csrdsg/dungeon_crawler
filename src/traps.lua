@@ -4,14 +4,11 @@
 
 math.randomseed(os.time())
 
-local traps = {
-    {name = "Poison Dart Trap", damage = "2d6", dc = 12, type = "dex"},
-    {name = "Pit Trap", damage = "3d6", dc = 13, type = "dex"},
-    {name = "Arrow Trap", damage = "1d8+2", dc = 11, type = "dex"},
-    {name = "Flame Jet", damage = "2d8", dc = 14, type = "dex"},
-    {name = "Crushing Wall", damage = "4d6", dc = 15, type = "str"},
-    {name = "Magic Rune", damage = "3d8", dc = 16, type = "int"}
-}
+-- Load trap data from external file
+local script_path = debug.getinfo(1, "S").source:sub(2)
+local script_dir = script_path:match("(.*/)")
+local data_dir = script_dir and script_dir:gsub("src/$", "data/") or "../data/"
+local traps = dofile(data_dir .. "trap_types.lua")
 
 local function roll_dice(dice_str)
     local count, sides, bonus = dice_str:match("(%d+)d(%d+)([%+%-]?%d*)")

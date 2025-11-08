@@ -3,223 +3,33 @@ local M = {}
 
 local dice = require('dice')
 
--- Spell database
-M.spells = {
-    -- Arcane Spells
-    magic_missile = {
-        name = "Magic Missile",
-        type = "arcane",
-        level = 1,
-        mana_cost = 3,
-        damage = "2d4+2",
-        description = "Unerring bolts of magical force",
-        auto_hit = true,
-        target = "single"
-    },
+-- Load spell and ability data from external files
+local function get_data_dir()
+    local script_path = debug.getinfo(1, "S").source:sub(2)
+    local script_dir = script_path:match("(.*/)")
     
-    fireball = {
-        name = "Fireball",
-        type = "arcane",
-        level = 3,
-        mana_cost = 8,
-        damage = "6d6",
-        description = "Explosive ball of flame",
-        save_dc = 14,
-        save_type = "DEX",
-        target = "area"
-    },
-    
-    lightning_bolt = {
-        name = "Lightning Bolt",
-        type = "arcane",
-        level = 3,
-        mana_cost = 7,
-        damage = "8d6",
-        description = "Line of crackling electricity",
-        save_dc = 14,
-        save_type = "DEX",
-        target = "line"
-    },
-    
-    shield = {
-        name = "Shield",
-        type = "arcane",
-        level = 1,
-        mana_cost = 3,  -- NERFED: 2 → 3 (still strong but more expensive)
-        duration = 3,
-        ac_bonus = 5,
-        description = "Invisible barrier of force (+5 AC for 3 rounds)",
-        target = "self"
-    },
-    
-    detect_magic = {
-        name = "Detect Magic",
-        type = "arcane",
-        level = 1,
-        mana_cost = 2,
-        duration = 10,
-        description = "Sense magical auras nearby",
-        target = "self"
-    },
-    
-    haste = {
-        name = "Haste",
-        type = "arcane",
-        level = 3,
-        mana_cost = 6,
-        duration = 5,
-        description = "Double attack speed (2 attacks per round)",
-        target = "self"
-    },
-    
-    -- Divine Spells
-    cure_wounds = {
-        name = "Cure Wounds",
-        type = "divine",
-        level = 1,
-        mana_cost = 5,  -- NERFED MORE: 4 → 5 (expensive!)
-        healing = "2d4+2",  -- NERFED MORE: 2d6+2 → 2d4+2 (avg 7 HP)
-        description = "Restore health with divine energy",
-        target = "self",
-        max_uses_per_combat = 1  -- NEW: Can only use once per combat
-    },
-    
-    bless = {
-        name = "Bless",
-        type = "divine",
-        level = 1,
-        mana_cost = 4,  -- NERFED: 3 → 4 (more expensive)
-        duration = 5,
-        bonus = 2,
-        description = "+2 to attack rolls and saving throws",
-        target = "self"
-    },
-    
-    turn_undead = {
-        name = "Turn Undead",
-        type = "divine",
-        level = 2,
-        mana_cost = 5,
-        save_dc = 13,
-        save_type = "WIS",
-        description = "Force undead to flee",
-        target = "undead"
-    },
-    
-    holy_smite = {
-        name = "Holy Smite",
-        type = "divine",
-        level = 2,
-        mana_cost = 5,
-        damage = "3d8",
-        description = "Divine radiance damages evil",
-        bonus_vs_undead = "2d8",
-        target = "single"
-    },
-    
-    prayer = {
-        name = "Prayer",
-        type = "divine",
-        level = 3,
-        mana_cost = 7,
-        duration = 5,
-        description = "+1 AC, +1 attack, +1 damage",
-        target = "self"
-    },
-}
+    -- Try different path resolutions
+    if script_dir and script_dir:match("src/$") then
+        return script_dir:gsub("src/$", "data/")
+    elseif script_dir then
+        return script_dir .. "../data/"
+    else
+        -- Fallback paths to try
+        local possible_paths = {"data/", "./data/", "../data/", "../../data/"}
+        for _, path in ipairs(possible_paths) do
+            local test_file = io.open(path .. "spells.lua", "r")
+            if test_file then
+                test_file:close()
+                return path
+            end
+        end
+        return "data/" -- Default fallback
+    end
+end
 
--- Ability database
-M.abilities = {
-    -- Fighter Abilities
-    second_wind = {
-        name = "Second Wind",
-        class = "fighter",
-        level_required = 1,
-        cooldown = 0,  -- Per rest
-        uses_per_rest = 2,  -- BUFFED: 1 → 2 uses
-        healing = "2d10+level",  -- BUFFED: 1d10 → 2d10 (more healing)
-        description = "Recover HP as a bonus action (2 uses per rest)"
-    },
-    
-    action_surge = {
-        name = "Action Surge",
-        class = "fighter",
-        level_required = 2,
-        cooldown = 0,
-        uses_per_rest = 1,
-        description = "Take an additional action this turn"
-    },
-    
-    power_attack = {
-        name = "Power Attack",
-        class = "fighter",
-        level_required = 1,
-        cooldown = 0,
-        penalty_to_hit = -2,
-        bonus_damage = "+5",
-        description = "Trade accuracy for damage (-2 hit, +5 damage)"
-    },
-    
-    -- Rogue Abilities
-    sneak_attack = {
-        name = "Sneak Attack",
-        class = "rogue",
-        level_required = 1,
-        bonus_damage = "4d6",  -- BUFFED MORE: 3d6 → 4d6 (significant damage)
-        description = "Extra damage when attacking (always active)",
-        requirement = "none"  -- Always active
-    },
-    
-    cunning_action = {
-        name = "Cunning Action",
-        class = "rogue",
-        level_required = 2,
-        description = "Bonus dash, disengage, or hide action"
-    },
-    
-    evasion = {
-        name = "Evasion",
-        class = "rogue",
-        level_required = 7,
-        description = "Take no damage on successful DEX save (half on fail)",
-        passive = true
-    },
-    
-    -- Wizard Abilities
-    arcane_recovery = {
-        name = "Arcane Recovery",
-        class = "wizard",
-        level_required = 1,
-        uses_per_rest = 1,
-        mana_recovery = "level/2",
-        description = "Recover mana during short rest"
-    },
-    
-    spell_mastery = {
-        name = "Spell Mastery",
-        class = "wizard",
-        level_required = 5,
-        description = "Cast one 1st-level spell without mana cost",
-        passive = true
-    },
-    
-    -- Cleric Abilities
-    channel_divinity = {
-        name = "Channel Divinity",
-        class = "cleric",
-        level_required = 2,
-        uses_per_rest = 1,
-        description = "Use divine power (Turn Undead or other effect)"
-    },
-    
-    divine_intervention = {
-        name = "Divine Intervention",
-        class = "cleric",
-        level_required = 10,
-        success_chance = "level%",
-        description = "Call upon deity for aid"
-    },
-}
+local data_dir = get_data_dir()
+M.spells = dofile(data_dir .. "spells.lua")
+M.abilities = dofile(data_dir .. "abilities.lua")
 
 -- Cast a spell
 function M.cast_spell(caster, spell_name, target)

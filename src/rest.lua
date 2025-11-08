@@ -4,19 +4,25 @@
 
 math.randomseed(os.time())
 
+-- Load rest configuration from external file
+local script_path = debug.getinfo(1, "S").source:sub(2)
+local script_dir = script_path:match("(.*/)")
+local data_dir = script_dir and script_dir:gsub("src/$", "data/") or "../data/"
+local rest_config = dofile(data_dir .. "rest_config.lua")
+
 local function short_rest()
+    local config = rest_config.short_rest
     print("\n" .. string.rep("═", 60))
-    print("🏕️  SHORT REST (15 minutes)")
+    print("🏕️  " .. config.name:upper() .. " (" .. config.duration .. ")")
     print(string.rep("═", 60))
     
-    local heal = math.random(1, 6) + 1  -- 1d6+1 (HARD MODE: reduced from 2d6)
-    print("You take a moment to catch your breath...")
+    local heal = math.random(1, 6) + 1
+    print(config.description)
     print(string.format("✨ Restored %d HP", heal))
     
-    -- 40% chance of encounter during short rest (HARD MODE: increased from 30%)
-    if math.random(1, 100) <= 40 then
+    if math.random(1, 100) <= config.encounter_chance then
         print("\n⚠️  Interrupted! A wandering creature appears!")
-        return heal, true  -- healed, encounter
+        return heal, true
     else
         print("✓ Rest completed successfully")
         return heal, false
@@ -24,18 +30,18 @@ local function short_rest()
 end
 
 local function long_rest()
+    local config = rest_config.long_rest
     print("\n" .. string.rep("═", 60))
-    print("🏕️  LONG REST (8 hours)")
+    print("🏕️  " .. config.name:upper() .. " (" .. config.duration .. ")")
     print(string.rep("═", 60))
     
-    print("You set up camp and rest for the night...")
+    print(config.description)
     print("✨ Fully restored HP and MP")
-    print("🍖 Consumed 1 day of rations")
+    print("🍖 Consumed " .. config.ration_cost .. " day of rations")
     
-    -- 60% chance of encounter during long rest
-    if math.random(1, 100) <= 60 then
+    if math.random(1, 100) <= config.encounter_chance then
         print("\n⚠️  Night encounter! Something disturbs your sleep!")
-        return "full", true  -- full heal, encounter
+        return "full", true
     else
         print("✓ Restful sleep, no interruptions")
         return "full", false
