@@ -3,6 +3,9 @@
 -- Simple script to move through chambers sequentially
 -- Usage: lua move_chambers.lua <chamber1> <chamber2> <chamber3> ...
 
+-- Load chamber art module
+local chamber_art_module = dofile("src/chamber_art.lua")
+
 local function load_dungeon(filename)
     local f = io.open(filename, "r")
     if not f then return nil end
@@ -132,6 +135,11 @@ for i, target in ipairs(arg) do
     print("")
     print("📍 CHAMBER " .. target_num .. " - " .. (chamber_types[target_chamber.type] or "Unknown"))
     print("═══════════════════════════════════════════════════════════════")
+    
+    -- Display ASCII art for the chamber
+    local art = chamber_art_module.get_chamber_art(target_chamber.type)
+    print(art[1])
+    
     print("")
     print("Connected to: " .. table.concat(target_chamber.connections, ", "))
     print("")

@@ -4,6 +4,9 @@
 math.randomseed(os.time())
 for i = 1, 10 do math.random() end
 
+-- Load chamber art module
+local chamber_art_module = dofile("src/chamber_art.lua")
+
 -- Helper: Roll dice
 local function roll(dice_str)
     local num, sides, bonus = dice_str:match("(%d*)d(%d+)([%+%-]?%d*)")
@@ -126,6 +129,10 @@ print("  Free Captain Theron's Spirit (Defeat Iron Sentinel in Chamber 7)")
 print("\n📍 Current Location: Chamber " .. dungeon.player_position)
 local current = dungeon.chambers[dungeon.player_position]
 print("   Type: " .. chamber_types[current.type])
+
+-- Display ASCII art for the chamber
+local art = chamber_art_module.get_chamber_art(current.type)
+print(art[1])
 
 -- Check if command-line argument provided (non-interactive mode)
 if arg[1] then
