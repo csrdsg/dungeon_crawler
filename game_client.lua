@@ -54,12 +54,22 @@ local function send_command(client, cmd)
         return nil, "Send failed: " .. tostring(err)
     end
     
-    local response, err = client:receive()
-    if not response then
-        return nil, "Receive failed: " .. tostring(err)
+    -- Read all lines until empty line or timeout
+    local lines = {}
+    client:settimeout(0.5)
+    while true do
+        local line, err = client:receive()
+        if not line then
+            break
+        end
+        table.insert(lines, line)
     end
     
-    return response
+    if #lines == 0 then
+        return nil, "No response received"
+    end
+    
+    return table.concat(lines, "\n")
 end
 
 -- Interactive mode

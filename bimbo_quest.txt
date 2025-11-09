@@ -1,5 +1,5 @@
 DUNGEON_SAVE_V1
-player_position=7
+player_position=1
 num_chambers=10
 ---CHAMBERS---
 id=1,type=9,visited=true,connections=3:6:8
