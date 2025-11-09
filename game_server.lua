@@ -3,6 +3,25 @@
 
 local ServerCore = require("src.server_core")
 
+-- Parse command-line arguments
+local ai_mode = nil
+local ai_model = nil
+
+for i = 1, #arg do
+    if arg[i] == "--ai-mode" and arg[i+1] then
+        ai_mode = arg[i+1]
+    elseif arg[i] == "--ai-model" and arg[i+1] then
+        ai_model = arg[i+1]
+    elseif arg[i] == "--help" or arg[i] == "-h" then
+        print("Usage: lua game_server.lua [OPTIONS]")
+        print("Options:")
+        print("  --ai-mode <ollama|openai>  Enable AI storyteller with specified provider")
+        print("  --ai-model <model>         Specify AI model (e.g., llama3.2:3b, gpt-4)")
+        print("  --help, -h                 Show this help message")
+        os.exit(0)
+    end
+end
+
 -- Server configuration
 local HOST = "127.0.0.1"
 local PORT = 9999
@@ -19,6 +38,39 @@ dofile("src/chamber_art.lua")
 local QuestSystem = require("src.quest_system")
 local InitialQuests = require("src.initial_quests")
 local QuestHandler = require("src.quest_handler")
+
+-- Load AI Storyteller if requested
+local ai_storyteller = nil
+if ai_mode then
+    ai_storyteller = require("src.ai_storyteller")
+    local ai_config = require("src.ai_config")
+    
+    -- Override config with command-line args
+    ai_config.enabled = true
+    ai_config.provider = ai_mode
+    
+    if ai_mode == "ollama" then
+        if ai_model then
+            ai_config.ollama.model = ai_model
+        end
+        ai_config.model = ai_config.ollama.model
+        ai_config.endpoint = ai_config.ollama.endpoint
+    elseif ai_mode == "openai" then
+        if ai_model then
+            ai_config.openai.model = ai_model
+        end
+        ai_config.model = ai_config.openai.model
+        ai_config.endpoint = ai_config.openai.endpoint
+        ai_config.api_key = ai_config.openai.api_key
+    end
+    
+    -- Initialize AI
+    local ai_enabled = ai_storyteller.init(ai_config)
+    if not ai_enabled then
+        print("⚠️  AI mode requested but initialization failed, continuing without AI")
+        ai_storyteller = nil
+    end
+end
 
 -- Initialize RNG
 math.randomseed(os.time())
@@ -463,6 +515,21 @@ local function process_command(session_id, cmd)
             
             table.insert(response, string.format("🚶 Moving to Chamber %d...", dest))
             table.insert(response, string.format("📍 Entered: %s", chamber_types[current.type]))
+            
+            -- AI narration for chamber entry
+            if ai_storyteller then
+                local chamber_data = {
+                    type = chamber_types[current.type],
+                    exits = table.concat(current.connections, ", "),
+                    items = "unknown",
+                    enemies = "unknown"
+                }
+                local narration = ai_storyteller.narrate_chamber(chamber_data, {})
+                if narration then
+                    table.insert(response, "")
+                    table.insert(response, "📖 " .. narration)
+                end
+            end
             
             -- Trigger quest check for exploration
             local quest_notifications = QuestHandler.check_quest_completion(session, "chamber_entered")

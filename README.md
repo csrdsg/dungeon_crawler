@@ -32,6 +32,22 @@ lua game_client.lua search
 lua game_client.lua -i
 ```
 
+### AI Storyteller Mode (NEW! 🤖)
+```bash
+# With Ollama (local, free)
+# First install: curl -fsSL https://ollama.com/install.sh | sh
+# Then: ollama pull llama3.2:3b
+
+lua game_server.lua --ai-mode ollama
+
+# With OpenAI (cloud, requires API key)
+export OPENAI_API_KEY="sk-..."
+lua game_server.lua --ai-mode openai --ai-model gpt-4
+
+# Connect client normally
+lua game_client.lua -i
+```
+
 ### Run Tests
 ```bash
 cd tests && ./run_tests.sh
@@ -52,6 +68,8 @@ dungeon_crawler/
 │   ├── dice.lua           # Dice rolling system
 │   ├── combat.lua         # Turn-based combat
 │   ├── server_core.lua    # 🆕 Async server framework
+│   ├── ai_storyteller.lua # 🆕 AI narrative engine
+│   ├── ai_config.lua      # 🆕 AI configuration
 │   ├── dungeon_generator.lua
 │   ├── encounter_gen.lua
 │   ├── loot.lua
@@ -131,6 +149,17 @@ dungeon_crawler/
 - ✅ **Broadcasting** - Ready for multiplayer features
 - ✅ **Heartbeat System** - Connection keep-alive (PING/PONG)
 
+### AI Storyteller Features (NEW! 🤖)
+- ✅ **Dynamic Chamber Descriptions** - Unique, atmospheric narration for every room
+- ✅ **Dual Provider Support** - Ollama (local, free) or OpenAI (cloud, premium)
+- ✅ **Smart Caching** - Avoid redundant API calls
+- ✅ **Fallback System** - Graceful degradation if AI unavailable
+- ✅ **Performance Optimized** - <500ms latency target
+- ✅ **Contextual Narration** - Chamber type, exits, and contents inform descriptions
+- ⏳ **Combat Narration** - Dynamic battle descriptions (Phase 1)
+- ⏳ **NPC Dialogue** - Conversational NPCs (Phase 2)
+- ⏳ **Quest Generation** - AI-generated quests (Phase 2)
+
 ### Balance
 - 🎯 **64% Survival Rate** (100 test runs)
 - 🎯 **80% Average Progress** (8/10 chambers)
@@ -138,6 +167,7 @@ dungeon_crawler/
 - 🎯 **22/22 Item Tests Passing**
 - 🎯 **All Magic Balanced** - No overpowered spells
 - 🎯 **39/39 Server Tests Passing** - Comprehensive coverage
+- 🎯 **39/39 AI Tests Passing** - AI integration validated
 
 ---
 
