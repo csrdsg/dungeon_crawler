@@ -95,9 +95,11 @@ function ai_storyteller.get_completion(prompt, options)
     ai_storyteller.stats.requests = ai_storyteller.stats.requests + 1
     local start_time = os.clock()
     
-    -- Try to get from cache first
-    local cache_key = prompt:sub(1, 100)  -- Use first 100 chars as key
-    if ai_storyteller.config.cache_enabled and ai_storyteller.cache[cache_key] then
+    -- Use custom cache key if provided, otherwise use prompt prefix
+    local cache_key = options.cache_key or prompt:sub(1, 100)
+    
+    -- Try to get from cache first (only if no custom key was provided via options)
+    if not options.cache_key and ai_storyteller.config.cache_enabled and ai_storyteller.cache[cache_key] then
         ai_storyteller.stats.cache_hits = ai_storyteller.stats.cache_hits + 1
         return ai_storyteller.cache[cache_key], 0
     end
@@ -282,6 +284,16 @@ function ai_storyteller.narrate_chamber(chamber_data, player_context)
         return nil
     end
     
+    -- Create unique cache key based on chamber properties
+    local cache_key = "chamber:" .. (chamber_data.type or "unknown") .. ":" .. (chamber_data.exits or "none")
+    
+    -- Check cache first
+    if ai_storyteller.config.cache_enabled and ai_storyteller.cache[cache_key] then
+        ai_storyteller.stats.cache_hits = ai_storyteller.stats.cache_hits + 1
+        ai_storyteller.stats.requests = ai_storyteller.stats.requests + 1
+        return ai_storyteller.cache[cache_key]
+    end
+    
     local prompt_template = [[You are a dungeon master narrating a dark fantasy adventure. 
 Describe the following chamber in 2-3 vivid, atmospheric sentences. Be immersive and concise.
 
@@ -300,10 +312,14 @@ Do not repeat information. Focus on atmosphere and sensory details.]]
     }
     
     local prompt = ai_storyteller.build_prompt(prompt_template, context)
-    local response, latency = ai_storyteller.get_completion(prompt)
+    local response, latency = ai_storyteller.get_completion(prompt, {cache_key = cache_key})
     
     if response then
         response = ai_storyteller.validate_response(response)
+        -- Cache the validated response
+        if response and ai_storyteller.config.cache_enabled then
+            ai_storyteller._cache_response(cache_key, response)
+        end
     end
     
     return response
