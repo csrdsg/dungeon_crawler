@@ -32,6 +32,14 @@ coverage/
 character_*.md
 !character_bimbo.md
 
+# State manager saves (keep examples)
+data/characters/*
+data/missions/*
+data/sessions/*
+!data/characters/.gitkeep
+!data/missions/.gitkeep
+!data/sessions/.gitkeep
+
 # Temporary files
 temp/
 tmp/

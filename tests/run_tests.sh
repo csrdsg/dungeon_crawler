@@ -1,71 +1,96 @@
 #!/bin/bash
-# run_tests.sh - Run all tests with proper exit code handling
+# Test runner for Dungeon Crawler TUI
 
-TEST_TYPE="${1:-all}"
-
-case "$TEST_TYPE" in
-    unit)
-        echo "╔══════════════════════════════════════════════════════════════════════╗"
-        echo "║                     DUNGEON CRAWLER - UNIT TESTS                     ║"
-        echo "╚══════════════════════════════════════════════════════════════════════╝"
-        TESTS=("test_dice.lua" "test_combat.lua" "test_inventory.lua" "test_stats_db.lua" "test_magic.lua" "test_item_effects.lua")
-        ;;
-    integration)
-        echo "╔══════════════════════════════════════════════════════════════════════╗"
-        echo "║                  DUNGEON CRAWLER - INTEGRATION TESTS                 ║"
-        echo "╚══════════════════════════════════════════════════════════════════════╝"
-        TESTS=("integration_tests.lua" "test_integrated_playthrough.lua")
-        ;;
-    all)
-        echo "╔══════════════════════════════════════════════════════════════════════╗"
-        echo "║                   DUNGEON CRAWLER - ALL TESTS                        ║"
-        echo "╚══════════════════════════════════════════════════════════════════════╝"
-        TESTS=("test_dice.lua" "test_combat.lua" "test_inventory.lua" "test_stats_db.lua" "test_magic.lua" "test_item_effects.lua" "integration_tests.lua" "test_integrated_playthrough.lua")
-        ;;
-    *)
-        echo "Usage: $0 [unit|integration|all]"
-        echo "  unit        - Run only unit tests"
-        echo "  integration - Run only integration tests"
-        echo "  all         - Run all tests (default)"
-        exit 1
-        ;;
-esac
-PASSED=0
-FAILED=0
-FAILED_TESTS=()
-
-for i in "${!TESTS[@]}"; do
-    TEST="${TESTS[$i]}"
-    echo ""
-    echo "[$(($i+1))/${#TESTS[@]}] Running $TEST..."
-    echo "══════════════════════════════════════════════════════════════════════"
-    
-    if lua "$TEST"; then
-        ((PASSED++))
-    else
-        ((FAILED++))
-        FAILED_TESTS+=("$TEST")
-    fi
-done
-
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║              DUNGEON CRAWLER TEST SUITE                      ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
-echo "══════════════════════════════════════════════════════════════════════"
-echo "🎯 OVERALL TEST RESULTS"
-echo "══════════════════════════════════════════════════════════════════════"
-echo "Test Suites Run:    ${#TESTS[@]}"
-echo "Test Suites Passed: $PASSED"
-echo "Test Suites Failed: $FAILED"
-echo "══════════════════════════════════════════════════════════════════════"
 
-if [ $FAILED -eq 0 ]; then
-    echo "🎉 ALL TEST SUITES PASSED!"
-    echo "══════════════════════════════════════════════════════════════════════"
+TESTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$TESTS_DIR"
+
+TOTAL_PASSED=0
+TOTAL_FAILED=0
+TOTAL_TESTS=0
+
+run_test() {
+    local test_file=$1
+    local test_name=$2
+    
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Running: $test_name"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    if lua "$test_file"; then
+        echo ""
+        return 0
+    else
+        echo ""
+        return 1
+    fi
+}
+
+# Run unit tests
+echo "📦 UNIT TESTS"
+echo ""
+
+if run_test "test_progression.lua" "Progression System"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+
+if run_test "test_effects.lua" "Effects System"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+
+if run_test "test_quest_ui.lua" "Quest UI System"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+
+((TOTAL_TESTS = TOTAL_PASSED + TOTAL_FAILED))
+
+# Run integration tests
+echo ""
+echo "🔗 INTEGRATION TESTS"
+echo ""
+
+if run_test "test_integration.lua" "System Integration"; then
+    ((TOTAL_PASSED++))
+else
+    ((TOTAL_FAILED++))
+fi
+
+((TOTAL_TESTS = TOTAL_PASSED + TOTAL_FAILED))
+
+# Final summary
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║                    FINAL TEST SUMMARY                        ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+echo "  Test Suites:"
+echo "    Total:  $TOTAL_TESTS"
+echo "    Passed: $TOTAL_PASSED ✅"
+echo "    Failed: $TOTAL_FAILED ❌"
+echo ""
+
+if [ $TOTAL_FAILED -eq 0 ]; then
+    echo "  Result: ✅ ALL TESTS PASSED!"
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║  🎉 The codebase is working correctly! 🎉                   ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
     exit 0
 else
-    echo "❌ FAILED TEST SUITES:"
-    for test in "${FAILED_TESTS[@]}"; do
-        echo "   - $test"
-    done
-    echo "══════════════════════════════════════════════════════════════════════"
+    echo "  Result: ❌ SOME TESTS FAILED"
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║  ⚠️  Please fix the failing tests  ⚠️                        ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
     exit 1
 fi

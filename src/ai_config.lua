@@ -11,8 +11,8 @@ return {
     -- Ollama Config (Local LLM)
     ollama = {
         endpoint = "http://localhost:11434/api/generate",
-        model = "llama3.2:3b",  -- Options: llama3.2:1b, llama3.2:3b, llama3.2, mistral
-        timeout = 10
+        model = nil,  -- Auto-detect fastest available model
+        timeout = 3
     },
     
     -- OpenAI Config (Cloud API)
@@ -24,7 +24,7 @@ return {
     },
     
     -- Generation Settings
-    max_tokens = 500,
+    max_tokens = 150,  -- Shorter, faster descriptions
     temperature = 0.7,  -- 0.0 = deterministic, 1.0 = creative
     
     -- Features (Phase 1)
@@ -40,7 +40,7 @@ return {
     
     -- Fallbacks
     use_static_on_error = true,
-    max_retries = 2,
+    max_retries = 1,  -- Fewer retries for speed
     
     -- Debug
     verbose = false,

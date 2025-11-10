@@ -9,14 +9,14 @@ local ai_storyteller = {
     config = {
         enabled = false,
         provider = "ollama",
-        model = "llama3.2:3b",
+        model = nil,  -- Auto-detect
         endpoint = "http://localhost:11434/api/generate",
         api_key = nil,
-        timeout = 10,
-        max_tokens = 500,
+        timeout = 3,  -- Faster timeout for quicker responses
+        max_tokens = 150,  -- Shorter descriptions
         temperature = 0.7,
         use_static_on_error = true,
-        max_retries = 2,
+        max_retries = 1,  -- Fewer retries for speed
         cache_enabled = true,
         cache_size = 100
     },
@@ -35,11 +35,53 @@ local ai_storyteller = {
     }
 }
 
+-- Auto-detect available Ollama model
+function ai_storyteller.detect_ollama_model()
+    local response_body = {}
+    local body, code = http.request{
+        url = "http://localhost:11434/api/tags",
+        method = "GET",
+        sink = ltn12.sink.table(response_body)
+    }
+    
+    if code == 200 then
+        local response_str = table.concat(response_body)
+        local data = json.decode(response_str)
+        
+        if data and data.models and #data.models > 0 then
+            -- Prefer smaller/faster models
+            local preferred = {"llama3.2:1b", "llama3.2:3b", "llama3.2", "mistral", "qwen2.5:0.5b"}
+            for _, pref in ipairs(preferred) do
+                for _, model in ipairs(data.models) do
+                    if model.name == pref then
+                        return pref
+                    end
+                end
+            end
+            -- Return first available model
+            return data.models[1].name
+        end
+    end
+    
+    return nil
+end
+
 -- Initialize AI storyteller with config
 function ai_storyteller.init(config)
     if config then
         for k, v in pairs(config) do
             ai_storyteller.config[k] = v
+        end
+    end
+    
+    -- Auto-detect Ollama model if not specified
+    if ai_storyteller.config.enabled and ai_storyteller.config.provider == "ollama" and not ai_storyteller.config.model then
+        ai_storyteller.config.model = ai_storyteller.detect_ollama_model()
+        if not ai_storyteller.config.model then
+            print("⚠️  AI Storyteller: No Ollama models found")
+            print("    Run: ollama pull llama3.2:1b")
+            ai_storyteller.config.enabled = false
+            return false
         end
     end
     
@@ -266,13 +308,13 @@ function ai_storyteller.validate_response(text)
     text = text:match("^%s*(.-)%s*$")  -- Trim whitespace
     
     -- Check for minimum length
-    if #text < 20 then
+    if #text < 10 then
         return nil
     end
     
     -- Check for maximum length (prevent runaway generation)
-    if #text > 2000 then
-        text = text:sub(1, 2000)
+    if #text > 300 then
+        text = text:sub(1, 300) .. "..."
     end
     
     return text
@@ -294,15 +336,9 @@ function ai_storyteller.narrate_chamber(chamber_data, player_context)
         return ai_storyteller.cache[cache_key]
     end
     
-    local prompt_template = [[You are a dungeon master narrating a dark fantasy adventure. 
-Describe the following chamber in 2-3 vivid, atmospheric sentences. Be immersive and concise.
+    local prompt_template = [[Describe this dungeon room in 1 sentence (max 20 words):
 
-Chamber Type: {chamber_type}
-Exits: {exits}
-Items: {items}
-Enemies: {enemies}
-
-Do not repeat information. Focus on atmosphere and sensory details.]]
+{chamber_type}, {exits}.]]
     
     local context = {
         chamber_type = chamber_data.type or "chamber",
@@ -312,7 +348,7 @@ Do not repeat information. Focus on atmosphere and sensory details.]]
     }
     
     local prompt = ai_storyteller.build_prompt(prompt_template, context)
-    local response, latency = ai_storyteller.get_completion(prompt, {cache_key = cache_key})
+    local response, latency = ai_storyteller.get_completion(prompt, {cache_key = cache_key, max_tokens = 50})
     
     if response then
         response = ai_storyteller.validate_response(response)
